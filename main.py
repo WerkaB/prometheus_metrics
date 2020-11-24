@@ -4,7 +4,7 @@ from prometheus_client import make_wsgi_app
 import datetime
 import random
 import time
-from prometheus_client import Counter, generate_latest, Gauge, Summary, History
+from prometheus_client import Counter, generate_latest, Gauge, Summary, Histogram
 
 import logging
 
@@ -23,7 +23,8 @@ CONTENT_TYPE_LATEST = str('text/plain; version=0.0.4; charset=utf-8')
 # Create a metric to track time spent and requests made.
 CONCURRENT_REQUEST = Gauge('concurrent_request', 'Number of concurrent requests.')
 BASIC_COUNTER = Counter('basic_counter', 'A basic counter.')
-REQUEST_TIME = Summary('request_duration', 'Time spent processing request')
+REQUEST_TIME_S = Summary('request_duration_s', 'Time spent processing request with summary')
+REQUEST_TIME_H = Histogram('request_duration_h', 'Time spent processing request with histogram')
 
 
 @app.route('/endpoint', methods=['GET'])
@@ -39,7 +40,8 @@ def on_endpoint():
     end_time = datetime.datetime.now()
     diff_time = (end_time - beginning_time).microseconds
     print(f"diff_time is: {diff_time}")
-    REQUEST_TIME.observe(diff_time)
+    REQUEST_TIME_S.observe(diff_time)
+    REQUEST_TIME_H.observe(diff_time)
     CONCURRENT_REQUEST.dec()
     return("OK")
 
