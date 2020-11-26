@@ -4,6 +4,7 @@ from prometheus_client import make_wsgi_app
 import datetime
 import random
 import time
+import boto3
 from prometheus_client import Counter, generate_latest, Gauge, Summary, Histogram
 
 import logging
@@ -26,6 +27,30 @@ BASIC_COUNTER = Counter('basic_counter', 'A basic counter.')
 REQUEST_TIME_S = Summary('request_duration_s', 'Time spent processing request with summary')
 REQUEST_TIME_H = Histogram('request_duration_h', 'Time spent processing request with histogram')
 
+cloudwatch = boto3.client('cloudwatch')
+
+def put_metrics(metric_name, metric_value):
+    response = cloudwatch.put_metric_data(
+        MetricData=[
+            {
+                'MetricName': metric_name,
+                'Dimensions': [
+                    {
+                        'Name': 'TEST_SERVICE',
+                        'Value': 'CoolService'
+                    },
+                    {
+                        'Name': 'APP_VERSION',
+                        'Value': '0.1'
+                    },
+                ],
+                'Unit': 'None',
+                'Value': metric_value
+            },
+        ],
+        Namespace='CoolApp'
+    )
+    return response
 
 @app.route('/endpoint', methods=['GET'])
 def on_endpoint():
@@ -44,6 +69,16 @@ def on_endpoint():
     REQUEST_TIME_H.observe(diff_time)
     CONCURRENT_REQUEST.dec()
     return("OK")
+
+
+@app.route('/send-metrics', methods=['GET'])
+def send_metrics():
+    concurrent_req_val = BASIC_COUNTER._value.get()
+    # lub
+
+    response = put_metrics("basic_counter", concurrent_req_val)
+    print(response)
+    return "OK"
 
 
 
